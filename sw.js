@@ -3,25 +3,24 @@ const filesToCache = [
     '/',
     '/index.html',
     '/style.css',
-    '/js/main.js'
+    '/manifest.json',
+    '/logo.png',
+    '/koty.html',
+    '/kot.css'
 ];
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(cacheName).then((cache) => {
             return cache.addAll(filesToCache);
+        }).catch(err => {
+            console.error('Caching failed:', err);
         })
     );
 });
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
-    );
-});
+
 self.addEventListener('activate', (event) => {
     const cacheWhitelist = [cacheName];
-
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -34,11 +33,12 @@ self.addEventListener('activate', (event) => {
         })
     );
 });
+
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request).then((fetchResponse) => {
-                if (event.request.method === 'GET') {
+                if (event.request.method === 'GET' && event.request.url.startsWith('https')) {
                     return caches.open(cacheName).then((cache) => {
                         cache.put(event.request, fetchResponse.clone());
                         return fetchResponse;
@@ -47,23 +47,6 @@ self.addEventListener('fetch', (event) => {
                 return fetchResponse;
             });
         }).catch(() => {
-            if (event.request.mode === 'navigate') {
-                return caches.match('/index.html');
-            }
-        })
-    );
-});
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request).then((fetchResponse) => {
-                return caches.open(cacheName).then((cache) => {
-                    cache.put(event.request, fetchResponse.clone());
-                    return fetchResponse;
-                });
-            });
-        }).catch(() => {
-            // Fallback dla braku po³¹czenia
             if (event.request.mode === 'navigate') {
                 return caches.match('/index.html');
             }
